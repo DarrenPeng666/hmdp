@@ -79,5 +79,7 @@ public class BlogController {
             blog.setIcon(user.getIcon());
         });
         return Result.ok(records);
+
+        //test
     }
 }
