@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.jnlp.BasicService;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
@@ -60,4 +61,6 @@ public class UploadController {
         // 生成文件名
         return StrUtil.format("/blogs/{}/{}/{}.{}", d1, d2, name, suffix);
     }
+
+
 }
