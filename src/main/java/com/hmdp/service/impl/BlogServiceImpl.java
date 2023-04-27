@@ -1,9 +1,10 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.util.BooleanUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
-import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
@@ -11,6 +12,7 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -28,6 +30,8 @@ import java.util.List;
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
 
     @Resource
+    private RedisTemplate redisTemplate;
+    @Resource
     private IUserService userService;
     @Override
     public Result queryBlogById(long id) {
@@ -38,7 +42,17 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         //查询用户
         queryBlogUser(blog);
+
+        //查询blog是否点过赞
+        isBlogLiked(blog);
         return Result.ok(blog);
+    }
+
+    private void isBlogLiked(Blog blog) {
+        Long userId = UserHolder.getUser().getId();
+        String key="blog:like"+blog.getId();
+        Boolean isMember = redisTemplate.opsForSet().isMember(key, userId.toString());
+        blog.setIsLike(BooleanUtil.isTrue(isMember));
     }
 
     public Result queryHotBlog(Integer current) {
@@ -51,8 +65,42 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 查询用户
         records.forEach(blog -> {
             queryBlogUser(blog);
+            isBlogLiked(blog);
         });
         return Result.ok(records);
+    }
+
+    @Override
+    public Result likeBlog(Long id) {
+        // 获取登录用户
+        Long userId = UserHolder.getUser().getId();
+        // 判断当前用户是否已经点赞
+        String key="blog:like"+id;
+        Boolean isMember = redisTemplate.opsForSet().isMember(key, userId.toString());
+        if (BooleanUtil.isFalse(isMember)){
+            // 如果未点赞，可以点赞
+            // 数据库点赞数+1
+            LambdaUpdateWrapper<Blog> updateWrapper=new LambdaUpdateWrapper();
+            updateWrapper.set(Blog::getLiked,this.getById(id).getLiked()+1);
+            updateWrapper.eq(Blog::getId,this.getById(id).getId());
+            boolean success = this.update(updateWrapper);
+            // 保存用户到redis集合
+            if (success){
+                redisTemplate.opsForSet().add(key,userId.toString());
+            }
+        }else {
+            // 如果已经点赞 取消点赞
+            // 数据库点赞数-1
+            LambdaUpdateWrapper<Blog> updateWrapper = new LambdaUpdateWrapper();
+            updateWrapper.set(Blog::getLiked, this.getById(id).getLiked() - 1);
+            updateWrapper.eq(Blog::getId, this.getById(id).getId());
+            boolean success = this.update(updateWrapper);
+            // 把用户把redis的set集合里删除
+            if (success) {
+                redisTemplate.opsForSet().remove(key, userId.toString());
+            }
+        }
+        return Result.ok();
     }
 
     private void queryBlogUser(Blog blog) {
