@@ -31,7 +31,14 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private IUserService userService;
     @Override
     public Result queryBlogById(long id) {
-        return null;
+        // 查询blog
+        Blog blog = getById(id);
+        if (blog==null) {
+            return Result.fail("博客不存在");
+        }
+        //查询用户
+        queryBlogUser(blog);
+        return Result.ok(blog);
     }
 
     public Result queryHotBlog(Integer current) {
@@ -43,11 +50,15 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<Blog> records = page.getRecords();
         // 查询用户
         records.forEach(blog -> {
-            Long userId = blog.getUserId();
-            User user = userService.getById(userId);
-            blog.setName(user.getNickName());
-            blog.setIcon(user.getIcon());
+            queryBlogUser(blog);
         });
         return Result.ok(records);
+    }
+
+    private void queryBlogUser(Blog blog) {
+        Long userId = blog.getUserId();
+        User user = userService.getById(userId);
+        blog.setName(user.getNickName());
+        blog.setIcon(user.getIcon());
     }
 }
