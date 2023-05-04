@@ -10,7 +10,6 @@ import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.RedisIdWorker;
-import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -73,14 +72,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         // 判断是否获取锁成功
         if (!isLock) {
             // 获取锁失败，返回错误或重试
-            return Result.fail("一个人不允许重复下单！");
+            return Result.fail("一个人不允许重复下单！ct6");
         }
         try {
             // 获取代理对象（事务）
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucher);
 
-        }finally {
+        } finally {
             lock.unlock();
         }
 
