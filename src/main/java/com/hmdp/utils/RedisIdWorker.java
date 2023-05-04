@@ -10,15 +10,14 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class RedisIdWorker {
 
+    private static final long BEGIN_TIMESTAMP = 1672531200L; //开始时间戳
     private RedisTemplate redisTemplate;
-
-    private static final long BEGIN_TIMESTAMP=1672531200L; //开始时间戳
 
     public RedisIdWorker(RedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    public long nextId(String keyPrefix){
+    public long nextId(String keyPrefix) {
         // 生成时间戳
         LocalDateTime now = LocalDateTime.now();
         long second = now.toEpochSecond(ZoneOffset.UTC);
@@ -29,7 +28,7 @@ public class RedisIdWorker {
         //自增长
         long count = redisTemplate.opsForValue().increment("icr:" + keyPrefix + ":" + date);
         // 拼接并返回
-        return timestamp<<32 | count;
+        return timestamp << 32 | count;
     }
 
 }

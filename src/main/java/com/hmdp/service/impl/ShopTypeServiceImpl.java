@@ -48,7 +48,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
 
         }
         List<ShopType> shopTypeList = this.list();
-        redisTemplate.opsForValue().set("cache:shopType", JSONUtil.toJsonStr(shopTypeList),30, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("cache:shopType", JSONUtil.toJsonStr(shopTypeList), 30, TimeUnit.MINUTES);
         return Result.ok(shopTypeList);
 
 //        方法2使用Zset

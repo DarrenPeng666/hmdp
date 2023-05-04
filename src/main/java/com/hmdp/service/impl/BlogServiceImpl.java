@@ -1,7 +1,6 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.BooleanUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,13 +13,17 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +37,8 @@ import java.util.stream.Collectors;
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
 
-    @Resource
-    private RedisTemplate redisTemplate;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
     @Resource
     private IUserService userService;
 
@@ -56,14 +59,14 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     private void isBlogLiked(Blog blog) {
         UserDTO user = UserHolder.getUser();
-        if (user==null){
+        if (user == null) {
             // 用户未登录 无需查询是否点赞
             return;
         }
         Long userId = UserHolder.getUser().getId();
         String key = "blog:like:" + blog.getId();
         Double score = redisTemplate.opsForZSet().score(key, userId.toString());
-        blog.setIsLike(score!=null);
+        blog.setIsLike(score != null);
     }
 
     public Result queryHotBlog(Integer current) {
@@ -117,12 +120,16 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     @Override
     public Result queryBlogLikes(long id) {
         // 查询Top5的点赞用户
-        Set top5 = redisTemplate.opsForZSet().range("blog:like:" + id, 0, 4);
-        List<Long> ids=new ArrayList<>();
+        Set<String> top5 = redisTemplate.opsForZSet().range("blog:like:" + id, 0, -1);
+        if (top5==null || top5.isEmpty()){
+            return Result.ok();
+        }
+        List<Long> ids = new ArrayList<>();
         for (Object o : top5) {
             // 解析出其中的用户ID
-            ids.add(Long.parseLong((String) o));
+            ids.add(Long.valueOf((String)o));
         }
+//        List<Long> ids =top5.stream().map(Long::valueOf).collect(Collectors.toList());
         // 根据用户ID查询用户
         List<UserDTO> userDTOS = userService.listByIds(ids)
                 .stream()
@@ -130,7 +137,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
                 .collect(Collectors.toList());
 
         // 返回
-
         return Result.ok(userDTOS);
     }
 
