@@ -65,4 +65,5 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         redisTemplate.delete("cache:shop:" + shop.getId());
         return Result.ok();
     }
+
 }

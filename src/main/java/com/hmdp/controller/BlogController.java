@@ -2,13 +2,11 @@ package com.hmdp.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.service.IBlogService;
-import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +32,7 @@ public class BlogController {
 
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
-      return blogService.saveBlog(blog);
+        return blogService.saveBlog(blog);
     }
 
     @PutMapping("/like/{id}")
@@ -70,11 +68,11 @@ public class BlogController {
     }
 
     @GetMapping("/of/user")
-    public Result queryBlogUserByUserId(@RequestParam(value = "current",defaultValue = "1") Integer current
-    ,@RequestParam("id") Long id){
-        Page<Blog> page=new Page<>(current,MAX_PAGE_SIZE);
-        LambdaQueryWrapper<Blog> queryWrapper=new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blog::getUserId,id);
+    public Result queryBlogUserByUserId(@RequestParam(value = "current", defaultValue = "1") Integer current
+            , @RequestParam("id") Long id) {
+        Page<Blog> page = new Page<>(current, MAX_PAGE_SIZE);
+        LambdaQueryWrapper<Blog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Blog::getUserId, id);
         Page<Blog> blogPage = blogService.page(page, queryWrapper);
         List<Blog> records = blogPage.getRecords();
         return Result.ok(records);
@@ -83,8 +81,8 @@ public class BlogController {
 
     @GetMapping("/of/follow")
     public Result queryBlogOfFollow(@RequestParam("lastId") Long max,
-                                    @RequestParam(value = "offset",defaultValue = "0") Integer offset){
+                                    @RequestParam(value = "offset", defaultValue = "0") Integer offset) {
 
-        return blogService.queryBlogOfFollow(max,offset);
+        return blogService.queryBlogOfFollow(max, offset);
     }
 }

@@ -36,28 +36,29 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     @Resource
     private IUserService userService;
+
     @Override
     public Result follow(Long followUserId, Boolean isFollow) {
         //获取登录用户
         Long userId = UserHolder.getUser().getId();
         // 判断到底是关注还是取消关注
-        String key ="follows:" +userId;
+        String key = "follows:" + userId;
         if (isFollow) {
             // 关注 新增数据
             Follow follow = new Follow();
             follow.setUserId(userId);
             follow.setFollowUserId(followUserId);
             boolean saved = this.save(follow);
-            if (saved){
-                redisTemplate.opsForSet().add(key,followUserId.toString());
+            if (saved) {
+                redisTemplate.opsForSet().add(key, followUserId.toString());
             }
         } else {
             // 取关 删除
             LambdaQueryWrapper<Follow> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(Follow::getUserId, userId).eq(Follow::getFollowUserId, followUserId);
             boolean removed = this.remove(queryWrapper);
-            if (removed){
-                redisTemplate.opsForSet().remove(key,followUserId.toString());
+            if (removed) {
+                redisTemplate.opsForSet().remove(key, followUserId.toString());
             }
         }
         return Result.ok();
@@ -77,10 +78,10 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
     public Result followCommons(Long id) {
         // 获取当前登录用户
         Long userId = UserHolder.getUser().getId();
-        String key="follows:"+userId;
-        String key2="follows:"+id;
+        String key = "follows:" + userId;
+        String key2 = "follows:" + id;
         Set<String> intersect = redisTemplate.opsForSet().intersect(key, key2);
-        if (intersect==null || intersect.isEmpty()){
+        if (intersect == null || intersect.isEmpty()) {
             return Result.ok();
         }
         List<Long> ids = intersect.stream().map(Long::valueOf).collect(Collectors.toList());

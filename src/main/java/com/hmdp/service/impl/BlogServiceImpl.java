@@ -18,17 +18,14 @@ import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -128,13 +125,13 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     public Result queryBlogLikes(long id) {
         // 查询Top5的点赞用户
         Set<String> top5 = redisTemplate.opsForZSet().range("blog:like:" + id, 0, -1);
-        if (top5==null || top5.isEmpty()){
+        if (top5 == null || top5.isEmpty()) {
             return Result.ok();
         }
         List<Long> ids = new ArrayList<>();
         for (Object o : top5) {
             // 解析出其中的用户ID
-            ids.add(Long.valueOf((String)o));
+            ids.add(Long.valueOf((String) o));
         }
 //        List<Long> ids =top5.stream().map(Long::valueOf).collect(Collectors.toList());
         // 根据用户ID查询用户
@@ -155,17 +152,17 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 保存探店博文
         boolean isSuccess = this.save(blog);
         // 查询笔记作者的所有粉丝
-        if (!isSuccess){
+        if (!isSuccess) {
             return Result.fail("新增笔记失败");
         }
         // 推送笔记ID给所有粉丝
-        LambdaUpdateWrapper<Follow> lambdaUpdateWrapper=new LambdaUpdateWrapper<>();
-        lambdaUpdateWrapper.eq(Follow::getFollowUserId,user.getId());
+        LambdaUpdateWrapper<Follow> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        lambdaUpdateWrapper.eq(Follow::getFollowUserId, user.getId());
         List<Follow> follows = followService.list(lambdaUpdateWrapper);
         for (Follow follow : follows) {
             Long userId = follow.getUserId();
-            String key="feed:"+userId;
-            redisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+            String key = "feed:" + userId;
+            redisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
 
         }
         // 返回id
@@ -176,33 +173,33 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 获取当前用户
         Long userId = UserHolder.getUser().getId();
         // 查询收件箱
-        String key="feed:"+userId;
+        String key = "feed:" + userId;
         Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet()
                 .reverseRangeByScoreWithScores(key, 0, max, offset, 2);
         // 非空判断
-        if (typedTuples==null|| typedTuples.isEmpty()) {
+        if (typedTuples == null || typedTuples.isEmpty()) {
             return Result.ok();
         }
         // 解析数据 ： blogId，score（时间戳）、offset偏移量
-        List<Long> ids=new ArrayList<>(typedTuples.size());
-        long minTime=0;
-        int os=1;
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        long minTime = 0;
+        int os = 1;
         for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
             // 获取id
             ids.add(Long.valueOf(typedTuple.getValue()));
             // 获取分数（时间戳）
-            long time=typedTuple.getScore().longValue();
-            if (time==minTime){
+            long time = typedTuple.getScore().longValue();
+            if (time == minTime) {
                 os++;
-            }else {
+            } else {
                 minTime = time;
-                os=1;
+                os = 1;
             }
 
         }
         // 根据id查询blog
         String idStr = StrUtil.join(",", ids);
-        List<Blog> blogs = this.query().in("id", ids).last("ORDER BY FIELD(id,"+ idStr+")").list();
+        List<Blog> blogs = this.query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
         for (Blog blog : blogs) {
             //查询用户
             queryBlogUser(blog);

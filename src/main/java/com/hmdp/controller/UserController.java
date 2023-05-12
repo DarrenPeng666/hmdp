@@ -89,9 +89,9 @@ public class UserController {
     }
 
     @GetMapping("{id}")
-    public Result queryUserById(@PathVariable("id")Long userId){
+    public Result queryUserById(@PathVariable("id") Long userId) {
         User user = userService.getById(userId);
-        if (user==null) {
+        if (user == null) {
             return Result.ok();
         }
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);

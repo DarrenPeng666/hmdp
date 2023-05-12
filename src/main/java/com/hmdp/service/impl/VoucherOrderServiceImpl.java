@@ -72,7 +72,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         // 判断是否获取锁成功
         if (!isLock) {
             // 获取锁失败，返回错误或重试
-            return Result.fail("一个人不允许重复下单！ct6");
+            return Result.fail("一个人不允许重复下单");
         }
         try {
             // 获取代理对象（事务）
